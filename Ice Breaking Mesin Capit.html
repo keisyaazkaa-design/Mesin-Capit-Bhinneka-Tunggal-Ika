@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesin Capit Bhinneka Tunggal Ika</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #a8ff78 0%, #78ffd6 100%);
+            touch-action: manipulation;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* Arcade Machine Visual Style */
+        .arcade-cabinet {
+            background: linear-gradient(180deg, #ff5e62 0%, #ff9966 100%);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25), inset 0 5px 15px rgba(255, 255, 255, 0.4);
+            border: 8px solid #33105c;
+            border-radius: 28px;
+        }
+
+        .claw-glass {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(200, 240, 255, 0.1) 100%);
+            box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.6), inset 0 -10px 20px rgba(0,0,0,0.15);
+            border: 6px solid #ff1493;
+        }
+
+        .ball-capsule {
+            transition: transform 0.2s ease;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+            cursor: pointer;
+        }
+
+        /* 3D Button Push Effects */
+        .arcade-btn {
+            box-shadow: 0 8px 0 #1b1035, 0 12px 15px rgba(0,0,0,0.3);
+            transition: all 0.08s ease;
+        }
+        .arcade-btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #1b1035, 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        /* Floating Light Animation */
+        @keyframes pulse-lights {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3) drop-shadow(0 0 8px #fff); }
+        }
+
+        .marquee-light {
+            animation: pulse-lights 1.2s infinite alternate;
+        }
+
+        /* Claw Animation Rig */
+        #claw-string {
+            width: 6px;
+            background: linear-gradient(90deg, #888, #eee, #888);
+            transition: height 0.1s linear;
+        }
+
+        #claw-head {
+            transition: transform 0.1s linear;
+        }
+
+        .claw-arm-left {
+            transform-origin: top right;
+            transition: transform 0.3s ease;
+        }
+        .claw-arm-right {
+            transform-origin: top left;
+            transition: transform 0.3s ease;
+        }
+
+        .claw-closed .claw-arm-left {
+            transform: rotate(25deg);
+        }
+        .claw-closed .claw-arm-right {
+            transform: rotate(-25deg);
+        }
+
+        .claw-open .claw-arm-left {
+            transform: rotate(-15deg);
+        }
+        .claw-open .claw-arm-right {
+            transform: rotate(15deg);
+        }
+
+        /* Glass Shine Overlay */
+        .glass-shine {
+            background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%);
+        }
+
+        /* Confetti Canvas Container */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-4">
+
+    <!-- TOP NAVIGATION HEADER -->
+    <header class="w-full max-w-2xl flex justify-between items-center bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border-2 border-amber-300 mb-2">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-r from-red-500 to-amber-500 text-white p-2.5 rounded-xl shadow">
+                <i class="fa-solid font-bold text-xl fa-shapes"></i>
+            </div>
+            <div>
+                <h1 class="text-lg sm:text-xl font-black text-amber-900 leading-tight">Bhinneka Capit!</h1>
+                <p class="text-xs font-bold text-amber-700">Ice Breaking Kebagfusan Nusantara</p>
+            </div>
+        </div>
+
+        <!-- Home Button linked to Canva URL -->
+        <a href="https://canva.link/0fd4366pu705syo" target="_blank" rel="noopener noreferrer" 
+           class="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold px-4 py-2 rounded-xl shadow-md transform hover:scale-105 transition-all border-2 border-emerald-300"
+           title="Kembali ke Beranda / Menu Canva">
+            <i class="fa-solid fa-house text-lg"></i>
+            <span class="hidden sm:inline text-sm">Kembali / Home</span>
+        </a>
+    </header>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- MAIN ARCADE MACHINE SCREEN -->
+    <main class="w-full max-w-xl flex-1 flex flex-col items-center justify-center my-auto">
+        <div class="arcade-cabinet w-full p-4 sm:p-6 relative">
+            
+            <!-- Marquee Header with Glowing Bulb Lights -->
+            <div class="bg-gradient-to-r from-purple-800 via-indigo-900 to-purple-800 rounded-2xl p-3 mb-3 border-4 border-yellow-400 shadow-inner flex items-center justify-between relative overflow-hidden">
+                <div class="flex space-x-1.5">
+                    <span class="marquee-light w-3 h-3 rounded-full bg-yellow-300 inline-block shadow"></span>
+                    <span class="marquee-light w-3 h-3 rounded-full bg-red-400 inline-block shadow" style="animation-delay: 0.3s"></span>
+                    <span class="marquee-light w-3 h-3 rounded-full bg-cyan-300 inline-block shadow" style="animation-delay: 0.6s"></span>
+                </div>
+                
+                <h2 class="text-yellow-300 font-black text-lg sm:text-2xl tracking-wider uppercase text-shadow text-center drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+                    🎯 Kumpulkan 5 Bola 🎯
+                </h2>
+
+                <div class="flex space-x-1.5">
+                    <span class="marquee-light w-3 h-3 rounded-full bg-cyan-300 inline-block shadow" style="animation-delay: 0.2s"></span>
+                    <span class="marquee-light w-3 h-3 rounded-full bg-green-400 inline-block shadow" style="animation-delay: 0.5s"></span>
+                    <span class="marquee-light w-3 h-3 rounded-full bg-yellow-300 inline-block shadow" style="animation-delay: 0.8s"></span>
+                </div>
+            </div>
+
+            <!-- Score / Target Indicator Bar -->
+            <div class="flex justify-between items-center bg-purple-950/80 text-white px-4 py-2 rounded-xl mb-3 border border-purple-400/30 text-xs sm:text-sm font-bold">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-trophy text-amber-400 text-lg"></i>
+                    <span>Bola Terkumpul: <span id="collected-count" class="text-yellow-300 text-base font-extrabold">0</span> / 5</span>
+                </div>
+                <div id="balls-display-bar" class="flex space-x-1">
+                    <!-- Dynamic ball icons will appear here -->
+                </div>
+            </div>
+
+            <!-- CLAW GLASS CONTAINER -->
+            <div id="claw-box" class="claw-glass w-full h-[320px] sm:h-[360px] rounded-2xl relative overflow-hidden bg-slate-900/60">
+                <!-- Glass shine effect -->
+                <div class="glass-shine absolute inset-0 pointer-events-none z-20"></div>
+
+                <!-- Top Rail for Crane -->
+                <div class="absolute top-0 left-0 right-0 h-4 bg-gray-800 border-b-2 border-gray-600 z-10 flex items-center">
+                    <div id="claw-rail-runner" class="h-6 w-12 bg-amber-500 rounded border border-amber-300 absolute top-0 shadow transform -translate-x-1/2" style="left: 50%;"></div>
+                </div>
+
+                <!-- CLAW MECHANISM ASSEMBLY -->
+                <div id="claw-assembly" class="absolute top-2 z-10 flex flex-col items-center transform -translate-x-1/2" style="left: 50%;">
+                    <!-- Vertical String Wire -->
+                    <div id="claw-string" class="h-10"></div>
+                    
+                    <!-- Claw Head & Arms -->
+                    <div id="claw-head" class="claw-open flex flex-col items-center relative">
+                        <div class="w-8 h-6 bg-gradient-to-b from-slate-300 to-slate-500 rounded-t-lg border border-slate-700 shadow"></div>
+                        <div class="flex justify-between w-12 relative -mt-1">
+                            <!-- Left Mechanical Arm -->
+                            <div class="claw-arm-left w-3 h-10 bg-gradient-to-b from-amber-400 to-amber-600 rounded-b-full border border-amber-800 shadow"></div>
+                            <!-- Right Mechanical Arm -->
+                            <div class="claw-arm-right w-3 h-10 bg-gradient-to-b from-amber-400 to-amber-600 rounded-b-full border border-amber-800 shadow"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BALLS PLAYFIELD CONTAINER -->
+                <div id="balls-container" class="absolute inset-x-0 bottom-0 top-12 p-3 z-10">
+                    <!-- Dynamic Balls rendered by JavaScript -->
+                </div>
+
+                <!-- Drop Chute Box (Bottom Left Exit) -->
+                <div class="absolute bottom-0 left-0 w-24 h-20 bg-slate-800 border-t-4 border-r-4 border-slate-600 rounded-tr-2xl z-0 flex flex-col items-center justify-center">
+                    <span class="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">KELUAR BOLA</span>
+                    <div class="w-16 h-10 bg-slate-950 rounded-lg inset-shadow flex items-center justify-center border border-slate-700">
+                        <div id="chute-ball-slot" class="transition-transform duration-500 transform scale-0">
+                            <!-- Captured ball image appears briefly here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTROLLER PANEL -->
+            <div class="mt-4 bg-gradient-to-b from-slate-900 to-purple-950 p-4 rounded-2xl border-4 border-amber-400 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+                
+                <!-- Directional Joystick / Buttons -->
+                <div class="flex items-center space-x-3 w-full sm:w-auto justify-center">
+                    <button id="btn-left" class="arcade-btn bg-blue-500 hover:bg-blue-400 text-white text-2xl font-black w-16 h-14 rounded-xl border-2 border-blue-200 flex items-center justify-center">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <span class="text-xs font-extrabold text-amber-200 uppercase tracking-wider">GESER</span>
+                    <button id="btn-right" class="arcade-btn bg-blue-500 hover:bg-blue-400 text-white text-2xl font-black w-16 h-14 rounded-xl border-2 border-blue-200 flex items-center justify-center">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Drop / Grab Main Action Button -->
+                <button id="btn-drop" class="arcade-btn w-full sm:w-auto flex-1 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-400 hover:to-pink-400 text-white font-black text-lg sm:text-xl py-3 px-6 rounded-xl border-2 border-red-200 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-hand-back-fist text-yellow-300"></i>
+                    <span>CAPIT BOLA!</span>
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- QUESTION MODAL DIALOG -->
+    <div id="question-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-5 sm:p-7 border-4 border-amber-400 shadow-2xl transform transition-all scale-95 animate-bounce-short">
+            
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center border-b-2 border-slate-100 pb-3 mb-4">
+                <div class="flex items-center space-x-2">
+                    <span id="question-ball-icon" class="text-3xl">🔮</span>
+                    <span class="font-black text-amber-900 text-lg sm:text-xl">Soal Bhinneka Tunggal Ika</span>
+                </div>
+                <span id="question-badge" class="bg-amber-100 text-amber-800 text-xs font-black px-3 py-1 rounded-full border border-amber-300">
+                    Bola Ke-1
+                </span>
+            </div>
+
+            <!-- Question Text -->
+            <div class="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200 mb-5">
+                <p id="question-text" class="text-slate-800 font-extrabold text-base sm:text-lg leading-snug">
+                    <!-- Question text injected here -->
+                </p>
+            </div>
+
+            <!-- Answer Options -->
+            <div id="options-container" class="space-y-2.5 mb-5">
+                <!-- Option buttons dynamically generated -->
+            </div>
+
+            <!-- Feedback / Hint Box (Shown after selecting answer) -->
+            <div id="feedback-box" class="hidden p-3.5 rounded-xl text-sm font-bold mb-4"></div>
+
+            <!-- Next Button -->
+            <button id="btn-next-question" class="hidden w-full arcade-btn bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold py-3.5 rounded-xl border-2 border-emerald-200 text-base text-center">
+                Lanjut Permainan <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- FINAL EVALUATION MODAL -->
+    <div id="evaluation-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-2xl rounded-3xl p-5 sm:p-8 border-4 border-yellow-400 shadow-2xl my-auto">
+            
+            <div class="text-center mb-6">
+                <div class="inline-block p-4 bg-yellow-100 rounded-full text-amber-500 text-5xl mb-2 animate-bounce">
+                    🏆
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-800">Evaluasi Hasil Bermain!</h2>
+                <p class="text-slate-600 font-bold text-sm">Hebat! Kamu telah berhasil mencapit 5 bola Bhinneka Tunggal Ika!</p>
+            </div>
+
+            <!-- Score Summary Card -->
+            <div class="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 rounded-2xl p-4 text-white text-center shadow-lg mb-6">
+                <div class="text-xs uppercase font-extrabold tracking-wider opacity-90">Total Skor Kamu</div>
+                <div id="final-score-text" class="text-4xl sm:text-5xl font-black my-1">0 / 100</div>
+                <div id="final-star-rating" class="text-2xl space-x-1 my-1">⭐⭐⭐⭐⭐</div>
+                <p id="final-appreciation" class="text-sm font-extrabold mt-1">Luar biasa! Kamu anak yang toleran dan hebat!</p>
+            </div>
+
+            <!-- Detailed Answer Review List -->
+            <h3 class="font-extrabold text-slate-800 text-base mb-3 flex items-center">
+                <i class="fa-solid fa-list-check text-emerald-500 mr-2"></i> Ulasan Jawaban Lengkap:
+            </h3>
+
+            <div id="review-list" class="space-y-3 max-h-60 overflow-y-auto pr-1 mb-6">
+                <!-- Detailed question reviews generated via JS -->
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="btn-restart" class="flex-1 arcade-btn bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold py-3.5 rounded-xl border-2 border-indigo-300 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Main Lagi (Soal Acak Baru)</span>
+                </button>
+                <a href="https://canva.link/0fd4366pu705syo" target="_blank" rel="noopener noreferrer" 
+                   class="flex-1 arcade-btn bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3.5 rounded-xl border-2 border-emerald-300 flex items-center justify-center space-x-2 text-center">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Kembali ke Home</span>
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           QUESTION BANK (25 Educational Questions about Bhinneka Tunggal Ika)
+           ========================================================================== */
+        const QUESTION_BANK = [
+            {
+                q: "Apa arti dari semboyan 'Bhinneka Tunggal Ika'?",
+                options: ["Berbeda-beda tetapi tetap satu jua", "Bersama kita teguh bercerai kita runtuh", "Bersatu kita pandai", "Berbeda-beda tetapi tidak kenal"],
+                answer: 0,
+                explanation: "Bhinneka Tunggal Ika berarti meskipun Indonesia memiliki banyak perbedaan, kita tetap satu bangsa Indonesia."
+            },
+            {
+                q: "Semboyan Bhinneka Tunggal Ika berasal dari kitab...",
+                options: ["Kitab Negarakertagama", "Kitab Sutasoma", "Kitab Arjunawiwaha", "Kitab Mahabarata"],
+                answer: 1,
+                explanation: "Semboyan ini terdapat dalam Kitab Sutasoma karangan Mpu Tantular pada zaman Kerajaan Majapahit."
+            },
+            {
+                q: "Siapakah pujangga/pengarang Kitab Sutasoma?",
+                options: ["Mpu Prapanca", "Mpu Tantular", "Mpu Gandring", "Mpu Sedah"],
+                answer: 1,
+                explanation: "Kitab Sutasoma dikarang oleh Mpu Tantular pada abad ke-14."
+            },
+            {
+                q: "Di manakah letak tulisan 'Bhinneka Tunggal Ika' pada lambang negara Garuda Pancasila?",
+                options: ["Di atas kepala Garuda", "Di dada Garuda", "Pita yang dicengkeram kaki Garuda", "Di sayap Garuda"],
+                answer: 2,
+                explanation: "Semboyan Bhinneka Tunggal Ika tertulis di atas pita putih yang dicengkeram erat oleh kaki Burung Garuda."
+            },
+            {
+                q: "Sikap kita ketika memiliki teman yang berbeda agama adalah...",
+                options: ["Jauhi karena berbeda", "Menghormati dan tetap berteman baik", "Meminta ikut agama kita", "Pura-pura tidak kenal"],
+                answer: 1,
+                explanation: "Toleransi dan menghormati perbedaan agama adalah wujud nyata mengamalkan Bhinneka Tunggal Ika."
+            },
+            {
+                q: "Alat musik tradisional Angklung berasal dari daerah...",
+                options: ["Jawa Barat", "Jawa Tengah", "Sumatera Utara", "Papua"],
+                answer: 0,
+                explanation: "Angklung terbuat dari bambu dan merupakan alat musik khas dari Jawa Barat."
+            },
+            {
+                q: "Rumah adat 'Honai' merupakan rumah tradisional khas dari daerah...",
+                options: ["Sumatera Barat", "Bali", "Papua", "Kalimantan Barat"],
+                answer: 2,
+                explanation: "Honai adalah rumah adat suku di Papua yang berbentuk jamur bersatap jerami."
+            },
+            {
+                q: "Tari Saman yang terkenal dengan gerakan kompak dan cepat berasal dari...",
+                options: ["Bali", "Aceh", "Jawa Timur", "Sulawesi Selatan"],
+                answer: 1,
+                explanation: "Tari Saman adalah tarian tradisional suku Gayo di provinsi Aceh."
+            },
+            {
+                q: "Tari Kecak dan Tari Pendet adalah tarian daerah yang berasal dari...",
+                options: ["Nusa Tenggara Barat", "Bali", "Jawa Barat", "DI Yogyakarta"],
+                answer: 1,
+                explanation: "Tari Kecak dan Pendet merupakan kebudayaan tarian terkenal dari Bali."
+            },
+            {
+                q: "Rumah adat 'Gadang' dengan atap berbentuk tanduk kerbau berasal dari...",
+                options: ["Sumatera Barat", "Riau", "Jambi", "Sumatera Selatan"],
+                answer: 0,
+                explanation: "Rumah Gadang adalah rumah adat suku Minangkabau di Sumatera Barat."
+            },
+            {
+                q: "Alat musik petik tradisional Sasando berasal dari daerah...",
+                options: ["Nusa Tenggara Timur (NTT)", "Maluku", "Papua", "Kalimantan Timur"],
+                answer: 0,
+                explanation: "Sasando dibuat dari daun lontar dan merupakan alat musik khas Pulau Rote, NTT."
+            },
+            {
+                q: "Alat musik pukul 'Tifa' berasal dari daerah...",
+                options: ["Jawa Tengah", "Maluku & Papua", "DKI Jakarta", "Lampung"],
+                answer: 1,
+                explanation: "Tifa adalah alat musik tradisional sejenis kendang dari Papua dan Maluku."
+            },
+            {
+                q: "Senjata tradisional Keris berasal dari pulau...",
+                options: ["Jawa", "Papua", "Sulawesi", "NTB"],
+                answer: 0,
+                explanation: "Keris adalah senjata tradisional khas Jawa dan telah diakui UNESCO."
+            },
+            {
+                q: "Senjata tradisional Rencong merupakan kebanggaan masyarakat...",
+                options: ["Aceh", "Sumatera Utara", "Banten", "Kalimantan Tengah"],
+                answer: 0,
+                explanation: "Rencong adalah senjata tradisional khas masyarakat Aceh."
+            },
+            {
+                q: "Upacara adat pembakaran mayat 'Ngaben' dilakukan oleh masyarakat di daerah...",
+                options: ["Bali", "Jawa Tengah", "Sulawesi Utara", "NTT"],
+                answer: 0,
+                explanation: "Ngaben adalah upacara keagamaan dan tradisi adat Hindu di Bali."
+            },
+            {
+                q: "Senjata tradisional Mandau merupakan senjata khas suku Dayak di pulau...",
+                options: ["Kalimantan", "Sumatera", "Sulawesi", "Jawa"],
+                answer: 0,
+                explanation: "Mandau adalah senjata tradisional suku Dayak di Kalimantan."
+            },
+            {
+                q: "Sikap saling menghargai dan menghormati antar sesama yang berbeda dinamakan...",
+                options: ["Toleransi", "Egois", "Diskriminasi", "Mandiri"],
+                answer: 0,
+                explanation: "Toleransi adalah kunci utama menjaga persatuan dalam keberagaman bangsa."
+            },
+            {
+                q: "Pakaian adat khas Betawi DKI Jakarta untuk pria disebut...",
+                options: ["Baju Sadariah / Ujung Serong", "Ulos", "Kebaya Jawa", "Baju Bodo"],
+                answer: 0,
+                explanation: "Baju Sadariah dan Ujung Serong adalah pakaian adat pria Betawi."
+            },
+            {
+                q: "Pakaian adat Ulos berasal dari suku Batak di daerah...",
+                options: ["Sumatera Utara", "Sumatera Selatan", "Riau", "Aceh"],
+                answer: 0,
+                explanation: "Kain Ulos adalah kain tenun khas suku Batak di Sumatera Utara."
+            },
+            {
+                q: "Meskipun memiliki teman dari berbagai latar belakang suku yang berbeda, bahasa persatuan kita adalah...",
+                options: ["Bahasa Daerah", "Bahasa Indonesia", "Bahasa Asing", "Bahasa Isyarat"],
+                answer: 1,
+                explanation: "Bahasa Indonesia adalah bahasa persatuan sebagaimana dinyatakan dalam Sumpah Pemuda."
+            },
+            {
+                q: "Tradisi 'Gotong Royong' di masyarakat mengajarkan kita untuk...",
+                options: ["Bekerja sama tanpa membeda-bedakan", "Bekerja sendirian", "Meminta imbalan uang", "Abaikan tetangga"],
+                answer: 0,
+                explanation: "Gotong royong memupuk rasa kebersamaan dan persatuan tanpa memandang suku/agama."
+            },
+            {
+                q: "Rumah adat 'Joglo' merupakan rumah tradisional khas masyarakat...",
+                options: ["Jawa", "Sunda", "Bugis", "Minahasa"],
+                answer: 0,
+                explanation: "Joglo adalah rumah tradisional masyarakat di Jawa Tengah, D.I. Yogyakarta, dan Jawa Timur."
+            },
+            {
+                q: "Pertunjukan seni reog yang terkenal berasal dari daerah...",
+                options: ["Ponorogo (Jawa Timur)", "Bandung", "Medan", "Makassar"],
+                answer: 0,
+                explanation: "Reog Ponorogo adalah kesenian daerah khas dari Ponorogo, Jawa Timur."
+            },
+            {
+                q: "Lagu daerah 'Gundhul Gundhul Pacul' berasal dari provinsi...",
+                options: ["Jawa Tengah", "Jawa Barat", "DKI Jakarta", "Bali"],
+                answer: 0,
+                explanation: "Gundhul Gundhul Pacul adalah lagu daerah bernilai budaya dari Jawa Tengah."
+            },
+            {
+                q: "Sikap yang BUKAN wujud pengamalan Bhinneka Tunggal Ika adalah...",
+                options: ["Mengejek tarian daerah teman", "Menonton festival budaya daerah lain", "Berteman tanpa pilih-pilih suku", "Menghormati hari raya agama lain"],
+                answer: 0,
+                explanation: "Mengejek budaya lain dapat memecah belah persatuan bangsa."
+            }
+        ];
+
+        /* Color definitions for dynamic capsule balls */
+        const BALL_COLORS = [
+            { bg: 'from-pink-400 to-rose-600', icon: '🔴', border: 'border-pink-300' },
+            { bg: 'from-amber-300 to-yellow-500', icon: '🟡', border: 'border-yellow-200' },
+            { bg: 'from-emerald-400 to-teal-600', icon: '🟢', border: 'border-emerald-300' },
+            { bg: 'from-sky-400 to-blue-600', icon: '🔵', border: 'border-sky-300' },
+            { bg: 'from-purple-400 to-indigo-600', icon: '🟣', border: 'border-purple-300' },
+            { bg: 'from-orange-400 to-amber-600', icon: '🟠', border: 'border-orange-300' }
+        ];
+
+        /* Web Audio API Sound Generator for Arcade Effects */
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playBeep(freq = 440, duration = 0.1, type = 'sine') {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+
+            playClawMove() {
+                this.playBeep(220, 0.05, 'square');
+            }
+
+            playGrab() {
+                this.playBeep(330, 0.15, 'triangle');
+            }
+
+            playSuccess() {
+                try {
+                    this.init();
+                    const now = this.ctx.currentTime;
+                    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0.12, now + idx * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.2);
+                    });
+                } catch(e) {}
+            }
+
+            playWrong() {
+                this.playBeep(180, 0.25, 'sawtooth');
+            }
+        }
+
+        const soundFx = new SoundFX();
+
+        /* Game State Variables */
+        let activeQuestions = [];
+        let currentQuestionIndex = 0;
+        let collectedCount = 0;
+        let userAnswersHistory = [];
+        let clawXPos = 50; // percentage across screen width (10% to 90%)
+        let isClawBusy = false;
+        let ballsData = [];
+
+        /* DOM Element References */
+        const clawAssembly = document.getElementById('claw-assembly');
+        const clawRailRunner = document.getElementById('claw-rail-runner');
+        const clawString = document.getElementById('claw-string');
+        const clawHead = document.getElementById('claw-head');
+        const ballsContainer = document.getElementById('balls-container');
+        const collectedCountEl = document.getElementById('collected-count');
+        const ballsDisplayBar = document.getElementById('balls-display-bar');
+        const questionModal = document.getElementById('question-modal');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackBox = document.getElementById('feedback-box');
+        const btnNextQuestion = document.getElementById('btn-next-question');
+        const questionBadge = document.getElementById('question-badge');
+        const evaluationModal = document.getElementById('evaluation-modal');
+        const chuteBallSlot = document.getElementById('chute-ball-slot');
+
+        /* Shuffle Array Function */
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        /* Start / Reset Game */
+        function initGame() {
+            // Shuffle questions from bank and pick questions for the game
+            activeQuestions = shuffleArray(QUESTION_BANK);
+            currentQuestionIndex = 0;
+            collectedCount = 0;
+            userAnswersHistory = [];
+            clawXPos = 50;
+            isClawBusy = false;
+
+            updateClawPosition();
+            collectedCountEl.textContent = '0';
+            ballsDisplayBar.innerHTML = '';
+            chuteBallSlot.classList.add('scale-0');
+
+            evaluationModal.classList.add('hidden');
+            questionModal.classList.add('hidden');
+
+            renderBallsOnPlayfield();
+        }
+
+        /* Render Random Interactive Capsule Balls in Claw Box */
+        function renderBallsOnPlayfield() {
+            ballsContainer.innerHTML = '';
+            ballsData = [];
+
+            // Spawn 12 visual balls
+            for (let i = 0; i < 12; i++) {
+                const colorObj = BALL_COLORS[i % BALL_COLORS.length];
+                const x = 12 + Math.random() * 76; // percentage x position
+                const y = 55 + Math.random() * 32; // percentage y position from bottom
+                const ballId = `ball-${i}`;
+
+                ballsData.push({ id: ballId, x: x, y: y, color: colorObj, grabbed: false });
+
+                const ballEl = document.createElement('div');
+                ballEl.id = ballId;
+                ballEl.className = `ball-capsule absolute w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr ${colorObj.bg} border-2 ${colorObj.border} shadow-lg flex items-center justify-center transform -translate-x-1/2 -translate-y-1/2`;
+                ballEl.style.left = `${x}%`;
+                ballEl.style.top = `${y}%`;
+
+                ballEl.innerHTML = `
+                    <div class="w-full h-1/2 bg-white/30 rounded-t-full border-b border-white/40 absolute top-0"></div>
+                    <span class="text-xl sm:text-2xl z-10 filter drop-shadow">⭐</span>
+                `;
+
+                ballsContainer.appendChild(ballEl);
+            }
+        }
+
+        /* Update Crane Claw X position */
+        function updateClawPosition() {
+            clawAssembly.style.left = `${clawXPos}%`;
+            clawRailRunner.style.left = `${clawXPos}%`;
+        }
+
+        /* Controls Event Listeners */
+        document.getElementById('btn-left').addEventListener('click', () => {
+            if (isClawBusy) return;
+            soundFx.playClawMove();
+            clawXPos = Math.max(12, clawXPos - 8);
+            updateClawPosition();
+        });
+
+        document.getElementById('btn-right').addEventListener('click', () => {
+            if (isClawBusy) return;
+            soundFx.playClawMove();
+            clawXPos = Math.min(88, clawXPos + 8);
+            updateClawPosition();
+        });
+
+        document.getElementById('btn-drop').addEventListener('click', () => {
+            if (isClawBusy) return;
+            soundFx.playGrab();
+            triggerClawDropSequence();
+        });
+
+        /* Main Animation Sequence for Claw Dropping & Grabbing */
+        function triggerClawDropSequence() {
+            isClawBusy = true;
+            
+            // Step 1: Open Claw Arms
+            clawHead.classList.remove('claw-closed');
+            clawHead.classList.add('claw-open');
+
+            // Step 2: Lower String Wire Down
+            const targetHeight = 180; // px
+            clawString.style.height = `${targetHeight}px`;
+
+            setTimeout(() => {
+                // Step 3: Find closest ball under claw
+                let closestBall = null;
+                let minDistance = 999;
+
+                ballsData.filter(b => !b.grabbed).forEach(ball => {
+                    const dist = Math.abs(ball.x - clawXPos);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestBall = ball;
+                    }
+                });
+
+                // Grab closest ball if within range (<18% distance)
+                const isSuccess = closestBall && minDistance < 18;
+
+                // Step 4: Close Claw Arms
+                clawHead.classList.remove('claw-open');
+                clawHead.classList.add('claw-closed');
+
+                let grabbedBallEl = null;
+                if (isSuccess && closestBall) {
+                    closestBall.grabbed = true;
+                    grabbedBallEl = document.getElementById(closestBall.id);
+                    if (grabbedBallEl) {
+                        grabbedBallEl.style.transition = 'all 0.1s linear';
+                    }
+                }
+
+                // Step 5: Retract Claw String Back Up
+                setTimeout(() => {
+                    clawString.style.height = '40px';
+
+                    if (grabbedBallEl) {
+                        grabbedBallEl.style.top = '18%';
+                        grabbedBallEl.style.left = `${clawXPos}%`;
+                    }
+
+                    setTimeout(() => {
+                        // Step 6: Return Claw to Home Left Exit Chute (x = 12%)
+                        clawXPos = 12;
+                        updateClawPosition();
+
+                        if (grabbedBallEl) {
+                            grabbedBallEl.style.left = '12%';
+                        }
+
+                        setTimeout(() => {
+                            // Step 7: Release Ball into Chute Box
+                            clawHead.classList.remove('claw-closed');
+                            clawHead.classList.add('claw-open');
+
+                            if (grabbedBallEl) {
+                                grabbedBallEl.style.opacity = '0';
+                                setTimeout(() => grabbedBallEl.remove(), 300);
+                            }
+
+                            // Show brief animation in exit chute slot
+                            chuteBallSlot.innerHTML = `
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 border border-white flex items-center justify-center text-sm shadow animate-bounce">
+                                    🎁
+                                </div>
+                            `;
+                            chuteBallSlot.classList.remove('scale-0');
+                            chuteBallSlot.classList.add('scale-100');
+
+                            soundFx.playSuccess();
+
+                            // Step 8: Open Question Modal Dialog
+                            setTimeout(() => {
+                                showQuestionModal();
+                            }, 600);
+
+                        }, 500);
+
+                    }, 600);
+
+                }, 600);
+
+            }, 500);
+        }
+
+        /* Display Question Modal for Current Captured Ball */
+        function showQuestionModal() {
+            const currentQ = activeQuestions[currentQuestionIndex];
+            
+            questionBadge.textContent = `Bola Ke-${collectedCount + 1}`;
+            questionText.textContent = currentQ.q;
+            feedbackBox.className = 'hidden p-3.5 rounded-xl text-sm font-bold mb-4';
+            btnNextQuestion.classList.add('hidden');
+
+            optionsContainer.innerHTML = '';
+
+            currentQ.options.forEach((optText, optIdx) => {
+                const optBtn = document.createElement('button');
+                optBtn.className = 'w-full text-left p-3.5 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-amber-400 font-extrabold text-slate-700 text-sm sm:text-base transition-all flex items-center justify-between group';
+                optBtn.innerHTML = `
+                    <span><strong class="text-amber-600 mr-2">${String.fromCharCode(65 + optIdx)}.</strong> ${optText}</span>
+                    <i class="fa-regular fa-circle text-slate-300 group-hover:text-amber-500"></i>
+                `;
+
+                optBtn.addEventListener('click', () => handleAnswerSelection(optIdx, currentQ));
+                optionsContainer.appendChild(optBtn);
+            });
+
+            questionModal.classList.remove('hidden');
+        }
+
+        /* Process Option Click Answer */
+        function handleAnswerSelection(selectedIndex, questionObj) {
+            // Disable all option buttons
+            const buttons = optionsContainer.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            const isCorrect = (selectedIndex === questionObj.answer);
+
+            // Record answer history
+            userAnswersHistory.push({
+                question: questionObj.q,
+                userChoice: questionObj.options[selectedIndex],
+                correctChoice: questionObj.options[questionObj.answer],
+                isCorrect: isCorrect,
+                explanation: questionObj.explanation
+            });
+
+            // Highlight chosen and correct buttons
+            buttons.forEach((btn, idx) => {
+                if (idx === questionObj.answer) {
+                    btn.className = 'w-full text-left p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-extrabold text-sm sm:text-base flex items-center justify-between';
+                    btn.querySelector('i').className = 'fa-solid fa-circle-check text-emerald-600 text-lg';
+                } else if (idx === selectedIndex && !isCorrect) {
+                    btn.className = 'w-full text-left p-3.5 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-900 font-extrabold text-sm sm:text-base flex items-center justify-between';
+                    btn.querySelector('i').className = 'fa-solid fa-circle-xmark text-rose-600 text-lg';
+                }
+            });
+
+            // Feedback Message Box
+            if (isCorrect) {
+                soundFx.playSuccess();
+                feedbackBox.className = 'p-3.5 rounded-xl text-sm font-extrabold mb-4 bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-start space-x-2';
+                feedbackBox.innerHTML = `
+                    <i class="fa-solid fa-star text-amber-500 text-lg mt-0.5"></i>
+                    <div>
+                        <div>BENAR! Jawabanmu Tepat Sekali! 🎉</div>
+                        <div class="text-xs font-bold text-emerald-800 mt-1">${questionObj.explanation}</div>
+                    </div>
+                `;
+            } else {
+                soundFx.playWrong();
+                feedbackBox.className = 'p-3.5 rounded-xl text-sm font-extrabold mb-4 bg-amber-100 text-amber-900 border border-amber-300 flex items-start space-x-2';
+                feedbackBox.innerHTML = `
+                    <i class="fa-solid fa-lightbulb text-amber-600 text-lg mt-0.5"></i>
+                    <div>
+                        <div>Hampir Benar! Bola Tetap Kamu Dapatkan! 👍</div>
+                        <div class="text-xs font-bold text-amber-800 mt-1">Jawaban Benar: <strong>${questionObj.options[questionObj.answer]}</strong>. ${questionObj.explanation}</div>
+                    </div>
+                `;
+            }
+
+            feedbackBox.classList.remove('hidden');
+            btnNextQuestion.classList.remove('hidden');
+        }
+
+        /* Next Button Event Handler */
+        btnNextQuestion.addEventListener('click', () => {
+            questionModal.classList.add('hidden');
+            chuteBallSlot.classList.add('scale-0');
+
+            collectedCount++;
+            currentQuestionIndex++;
+            collectedCountEl.textContent = collectedCount;
+
+            // Add collected ball indicator icon
+            const ballIndicator = document.createElement('span');
+            ballIndicator.className = 'text-lg animate-bounce';
+            ballIndicator.textContent = '🔮';
+            ballsDisplayBar.appendChild(ballIndicator);
+
+            if (collectedCount >= 5) {
+                // All 5 balls collected! Show evaluation screen
+                setTimeout(showEvaluationScreen, 300);
+            } else {
+                isClawBusy = false;
+            }
+        });
+
+        /* Final Evaluation Screen Rendering */
+        function showEvaluationScreen() {
+            const correctCount = userAnswersHistory.filter(a => a.isCorrect).length;
+            const scorePercentage = Math.round((correctCount / 5) * 100);
+
+            document.getElementById('final-score-text').textContent = `${scorePercentage} / 100`;
+
+            // Star Rating & Appreciation Text
+            let stars = '⭐⭐⭐⭐⭐';
+            let appreciation = 'Luar biasa! Kamu Pahlawan Kebinekaan Nusantara!';
+            
+            if (scorePercentage < 60) {
+                stars = '⭐⭐⭐';
+                appreciation = 'Bagus Sekali! Belajar Lagi Biar Semakin Pintar Ya!';
+            } else if (scorePercentage < 100) {
+                stars = '⭐⭐⭐⭐';
+                appreciation = 'Hebat Sekali! Pengetahuan Kebinekaanmu Mantap!';
+            }
+
+            document.getElementById('final-star-rating').textContent = stars;
+            document.getElementById('final-appreciation').textContent = appreciation;
+
+            // Render Detailed Review List
+            const reviewListEl = document.getElementById('review-list');
+            reviewListEl.innerHTML = '';
+
+            userAnswersHistory.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = `p-3.5 rounded-2xl border-2 text-xs sm:text-sm font-bold ${item.isCorrect ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 'bg-rose-50 border-rose-200 text-rose-950'}`;
+                
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <span class="font-black text-slate-800 text-sm mb-1">${idx + 1}. ${item.question}</span>
+                        <span class="ml-2 px-2 py-0.5 rounded text-[11px] font-black ${item.isCorrect ? 'bg-emerald-200 text-emerald-800' : 'bg-rose-200 text-rose-800'}">
+                            ${item.isCorrect ? 'BENAR' : 'SALAH'}
+                        </span>
+                    </div>
+                    <div class="mt-1">
+                        <span class="text-slate-600">Jawaban Kamu:</span> 
+                        <strong class="${item.isCorrect ? 'text-emerald-700' : 'text-rose-600'}">${item.userChoice}</strong>
+                    </div>
+                    ${!item.isCorrect ? `<div class="mt-0.5 text-emerald-800"><span class="text-slate-600">Jawaban Benar:</span> <strong>${item.correctChoice}</strong></div>` : ''}
+                    <div class="mt-1 text-[11px] text-slate-600 bg-white/70 p-2 rounded-lg border border-slate-200/60 font-semibold">
+                        💡 ${item.explanation}
+                    </div>
+                `;
+                reviewListEl.appendChild(card);
+            });
+
+            triggerConfetti();
+            evaluationModal.classList.remove('hidden');
+        }
+
+        /* Restart Game Button Listener */
+        document.getElementById('btn-restart').addEventListener('click', () => {
+            initGame();
+        });
+
+        /* Celebratory Canvas Confetti Effect */
+        function triggerConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#f43f5e', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+            for (let i = 0; i < 90; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: -20 - Math.random() * 100,
+                    size: 6 + Math.random() * 8,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    speedY: 2 + Math.random() * 4,
+                    speedX: -2 + Math.random() * 4,
+                    rotation: Math.random() * 360
+                });
+            }
+
+            function animateConfetti() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let active = false;
+
+                particles.forEach(p => {
+                    p.y += p.speedY;
+                    p.x += p.speedX;
+                    p.rotation += 4;
+
+                    if (p.y < canvas.height) {
+                        active = true;
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rotation * Math.PI) / 180);
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                        ctx.restore();
+                    }
+                });
+
+                if (active) {
+                    requestAnimationFrame(animateConfetti);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+
+            animateConfetti();
+        }
+
+        /* Initialize Game on Load */
+        window.addEventListener('load', () => {
+            initGame();
+        });
+
+        // Window resize handler for canvas
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('confetti-canvas');
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+    </script>
+</body>
+</html>
